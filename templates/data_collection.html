@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <title>终端信息监控 - 信息采集</title>
+    <link href="../css/daisyui.full.css" rel="stylesheet">
+    <link href="../css/fontawesome.all.min.css" rel="stylesheet">
+    <link href="../css/tailwind.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f9fafb;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .card {
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        .btn {
+            border-radius: 6px;
+            transition: all 0.2s ease-in-out;
+            padding: 0.5rem 1rem;
+        }
+        .btn-primary {
+            background-color: #2563eb;
+            color: white;
+        }
+        .btn-primary:hover {
+            background-color: #1d4ed8;
+        }
+        .btn-warning {
+            background-color: #f59e0b;
+            color: white;
+        }
+        .btn-warning:hover {
+            background-color: #d97706;
+        }
+        .select, .input {
+            border-radius: 6px;
+            border-color: #d1d5db;
+        }
+        .select:focus, .input:focus {
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+        }
+        .sidebar {
+            width: 200px;
+            height: calc(100vh - 112px);
+        }
+        .message-box {
+            border-radius: 6px;
+            padding: 1rem;
+        }
+        .success-message {
+            background: #d4edda;
+            border-left: 4px solid #28a745;
+        }
+        .error-message {
+            background: #ffebee;
+            border-left: 4px solid #f44336;
+        }
+        .info-message {
+            background: #e0f2fe;
+            border-left: 4px solid #2563eb;
+        }
+        /* 新增日志框样式 */
+        .log-box {
+            background-color: #1a1a1a;
+            color: #e0e0e0;
+            border-radius: 6px;
+            padding: 1rem;
+            height: 300px;
+            overflow-y: auto;
+            margin-top: 1rem;
+            font-family: monospace;
+            white-space: pre-wrap;
+            border-left: 4px solid #2563eb;
+        }
+        .log-box::-webkit-scrollbar {
+            width: 8px;
+        }
+        .log-box::-webkit-scrollbar-track {
+            background: #2d2d2d;
+        }
+        .log-box::-webkit-scrollbar-thumb {
+            background: #4a4a4a;
+            border-radius: 4px;
+        }
+        @media (max-width: 640px) {
+            .sidebar {
+                width: 150px;
+            }
+            .main-content {
+                margin-left: 150px;
+            }
+            .hidden-mobile {
+                display: none !important;
+            }
+            .collection-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <header class="bg-blue-600 text-white p-4 fixed top-0 left-0 w-full shadow-md z-50">
+        <h1 class="text-lg sm:text-xl font-bold">综合网管系统</h1>
+    </header>
+    <nav class="bg-blue-500 text-white p-3 fixed top-16 left-0 w-full shadow-md z-40 flex items-center">
+        <a href="/" class="text-sm sm:text-base mx-4 hover:opacity-80 transition-opacity">首页</a>
+        <a href="#" class="text-sm sm:text-base mx-4 hover:opacity-80 transition-opacity">网络监控</a>
+        <a href="#" class="text-sm sm:text-base mx-4 hover:opacity-80 transition-opacity">网络配置</a>
+        <a href="/terminal_monitor" class="text-sm sm:text-base mx-4 hover:opacity-80 transition-opacity">终端信息监控</a>
+        <a href="#" class="text-sm sm:text-base mx-4 hover:opacity-80 transition-opacity">终端开通与移机</a>
+    </nav>
+    <div class="sidebar bg-blue-600 text-white fixed top-28 left-0 p-4 overflow-y-auto shadow-md z-30">
+        <a href="/terminal_monitor" class="block text-sm sm:text-base p-2 my-2 rounded-md hover:bg-blue-400 transition-colors">统计信息</a>
+        <a href="/terminal_query" class="block text-sm sm:text-base p-2 my-2 rounded-md hover:bg-blue-400 transition-colors">信息查询</a>
+        <a href="/device_management" class="block text-sm sm:text-base p-2 my-2 rounded-md hover:bg-blue-400 transition-colors">设备管理</a>
+        <a href="/data_collection" class="block text-sm sm:text-base p-2 my-2 rounded-md bg-blue-400 hover:bg-blue-400 transition-colors">信息采集</a>
+    </div>
+    <div class="main-content ml-48 sm:ml-52 p-4 sm:p-6 mt-24">
+        <div class="collection-grid grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="card bg-base-100 shadow-sm">
+                <div class="card-body p-4 sm:p-6">
+                    <h2 class="card-title text-lg font-bold mb-4">信息采集</h2>
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-medium">选择设备进行采集（多选）：</span>
+                        </label>
+                        <select multiple class="select select-bordered h-32 w-full max-w-xs" id="switchNameSelect" title="按住Ctrl/Command多选">
+                            <option value="">请选择设备名称（多选）</option>
+                        </select>
+                        <div class="flex gap-2 mt-4">
+                            <button class="btn btn-primary" id="collect-all-btn" onclick="handleCollectAll()"><i class="fas fa-network-wired mr-2"></i>全网采集</button>
+                            <button class="btn btn-primary" id="collect-selected-btn" onclick="handleCollectSelected()"><i class="fas fa-check-circle mr-2"></i>采集选中设备</button>
+                        </div>
+                    </div>
+                    <div id="message-box" class="message-box hidden mt-4"></div>
+                    <!-- 新增日志显示框 -->
+                    <div id="log-box" class="log-box hidden"></div>
+                </div>
+            </div>
+            <div class="card bg-base-100 shadow-sm">
+                <div class="card-body p-4 sm:p-6">
+                    <h2 class="card-title text-lg font-bold mb-4">设置周期性全网采集</h2>
+                    <div class="form-control">
+                        <div class="flex flex-col gap-4">
+                            <div class="flex flex-col sm:flex-row gap-2">
+                                <label class="label w.bed sm:w-24">开始日期：</label>
+                                <input type="date" id="start-date" class="input input-bordered w-full max-w-xs" required>
+                            </div>
+                            <div class="flex flex-col sm:flex-row gap-2">
+                                <label class="label w-full sm:w-24">结束日期：</label>
+                                <input type="date" id="end-date" class="input input-bordered w-full max-w-xs" required>
+                            </div>
+                            <div class="flex flex-col sm:flex-row gap-2">
+                                <label class="label w-full sm:w-24">频率：</label>
+                                <select id="frequency" class="select select-bordered w.full max-w-xs">
+                                    <option value="daily">每天</option>
+                                    <option value="weekly">每周（周一）</option>
+                                    <option value="monthly">每月（1号）</option>
+                                </select>
+                            </div>
+                            <div class="flex flex-col sm:flex-row gap-2">
+                                <label class="label w.full sm:w-24">执行时间：</label>
+                                <input type="time" id="execution-time" class="input input-bordered w.full max-w-xs" required>
+                            </div>
+                            <div class="flex gap-2">
+                                <button class="btn btn-primary" id="set-schedule-btn" onclick="setSchedule()"><i class="fas fa-clock mr-2"></i>设置周期性采集</button>
+                                <button class="btn btn-warning" id="cancel-schedule-btn" onclick="cancelSchedule()" disabled><i class="fas fa-times mr-2"></i>取消周期性采集</button>
+                            </div>
+                        </div>
+                        <div id="schedule-status" class="mt-4 text-sm"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        let pollingInterval = null;
+        let logInterval = null; // 新增日志轮询变量
+
+        // 新增：启动日志轮询
+        function startLogPolling() {
+            const logBox = document.getElementById('log-box');
+            logBox.classList.remove('hidden');
+            logBox.innerHTML = '正在加载日志...';
+            
+            logInterval = setInterval(() => {
+                fetch('/get_logs')
+                    .then(response => response.text())
+                    .then(text => {
+                        logBox.innerHTML = text;
+                        logBox.scrollTop = logBox.scrollHeight;
+                    })
+                    .catch(error => {
+                        logBox.innerHTML = '日志加载失败: ' + error.message;
+                    });
+            }, 1000);
+        }
+
+        // 新增：停止日志轮询
+        function stopLogPolling() {
+            if (logInterval) {
+                clearInterval(logInterval);
+                logInterval = null;
+                document.getElementById('log-box').classList.add('hidden');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            fetch('/device_names')
+                .then(response => response.json())
+                .then(names => {
+                    const select = document.getElementById('switchNameSelect');
+                    select.innerHTML = '<option value="">请选择设备名称（多选）</option>';
+                    names.forEach(name => {
+                        const option = document.createElement('option');
+                        option.value = name;
+                        option.textContent = name;
+                        select.appendChild(option);
+                    });
+                })
+                .catch(error => {
+                    console.error('加载设备名称失败:', error);
+                    showMessage('加载设备名称失败: ' + error.message, 'error');
+                });
+
+            updateScheduleStatus();
+            checkCollectionStatus();
+            setInterval(updateScheduleStatus, 60000);
+        });
+
+        function checkCollectionStatus() {
+            fetch('/get_collection_status')
+                .then(response => response.json())
+                .then(data => {
+                    const collectAllButton = document.getElementById('collect-all-btn');
+                    const collectSelectedButton = document.getElementById('collect-selected-btn');
+
+                    if (data.error) {
+                        showMessage('获取采集状态失败: ' + data.error, 'error');
+                        enableButtons();
+                        stopPolling();
+                        return;
+                    }
+
+                    if (data.is_running) {
+                        disableButtons();
+                        showMessage(`正在进行${data.type === 'all' ? '全网' : '指定设备'}采集，開始时间：${data.start_time}`, 'info');
+                        startPolling();
+                        startLogPolling(); // 新增：自动显示运行中的日志
+                    } else {
+                        enableButtons();
+                        stopPolling();
+                        if (data.status) {
+                            const messageClass = data.status === 'completed' ? 'success-message' : 'error-message';
+                            const title = data.status === 'completed' ? '采集成功：' : '采集失败：';
+                            if (data.message) {
+                                showMessage(title + data.message.replace(/\n/g, '<br>'), messageClass);
+                            }
+                        }
+                    }
+                })
+                .catch(error => {
+                    showMessage('获取采集状态失败: ' + error.message, 'error');
+                    enableButtons();
+                    stopPolling();
+                });
+        }
+
+        function startPolling() {
+            if (!pollingInterval) {
+                pollingInterval = setInterval(checkCollectionStatus, 5000);
+            }
+        }
+
+        function stopPolling() {
+            if (pollingInterval) {
+                clearInterval(pollingInterval);
+                pollingInterval = null;
+            }
+            stopLogPolling(); // 新增：停止日志轮询
+        }
+
+        function disableButtons() {
+            const collectAllButton = document.getElementById('collect-all-btn');
+            const collectSelectedButton = document.getElementById('collect-selected-btn');
+            collectAllButton.disabled = true;
+            collectSelectedButton.disabled = true;
+            collectAllButton.textContent = '采集进行中...';
+            collectSelectedButton.textContent = '采集进行中...';
+        }
+
+        function enableButtons() {
+            const collectAllButton = document.getElementById('collect-all-btn');
+            const collectSelectedButton = document.getElementById('collect-selected-btn');
+            collectAllButton.disabled = false;
+            collectSelectedButton.disabled = false;
+            collectAllButton.textContent = '全网采集';
+            collectSelectedButton.textContent = '采集选中设备';
+        }
+
+        function handleCollectAll() {
+            fetch('/get_collection_status')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.is_running) {
+                        showMessage('已有正在运行的采集任务，请稍后再试', 'error');
+                        return;
+                    }
+                    disableButtons();
+                    clearMessage();
+                    startLogPolling(); // 新增：启动日志轮询
+
+                    fetch('/collect_all')
+                        .then(response => response.json())
+                        .then(data => {
+                            checkCollectionStatus();
+                        })
+                        .catch(error => {
+                            showMessage('采集错误：<br>网络请求失败: ' + error.message, 'error');
+                            enableButtons();
+                            stopPolling();
+                        });
+                })
+                .catch(error => {
+                    showMessage('检查采集状态失败: ' + error.message, 'error');
+                    enableButtons();
+                });
+        }
+
+        function handleCollectSelected() {
+            const switchSelect = document.getElementById('switchNameSelect');
+            const switchNames = Array.from(switchSelect.selectedOptions)
+                                    .filter(opt => opt.value !== '')
+                                    .map(opt => opt.value);
+            if (switchNames.length === 0) {
+                showMessage('请至少选择一个设备', 'error');
+                return;
+            }
+
+            fetch('/get_collection_status')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.is_running) {
+                        showMessage('已有正在运行的采集任务，请稍后再试', 'error');
+                        return;
+                    }
+                    disableButtons();
+                    clearMessage();
+                    startLogPolling(); // 新增：启动日志轮询
+
+                    fetch('/collect_selected', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ switch_names: switchNames })
+                    })
+                        .then(response => response.json())
+                        .then(data => {
+                            checkCollectionStatus();
+                        })
+                        .catch(error => {
+                            showMessage('采集错误：<br>网络请求失败: ' + error.message, 'error');
+                            enableButtons();
+                            stopPolling();
+                        });
+                })
+                .catch(error => {
+                    showMessage('检查采集状态失败: ' + error.message, 'error');
+                    enableButtons();
+                });
+        }
+
+        // 后续原有函数保持不变（setSchedule/cancelSchedule/updateScheduleStatus/showMessage等）
+        // ...（此处为保持代码长度合理省略重复部分，实际使用时需保留完整代码）
+
+        function setSchedule() {
+            const startDate = document.getElementById('start-date').value;
+            const endDate = document.getElementById('end-date').value;
+            const frequency = document.getElementById('frequency').value;
+            const executionTime = document.getElementById('execution-time').value;
+            const setButton = document.getElementById('set-schedule-btn');
+            const cancelButton = document.getElementById('cancel-schedule-btn');
+
+            if (!startDate || !endDate || !frequency || !executionTime) {
+                showMessage('请填写所有字段', 'error');
+                return;
+            }
+
+            const startDt = new Date(startDate);
+            const endDt = new Date(endDate);
+            const now = new Date();
+            now.setHours(0, 0, 0, 0);
+
+            if (startDt < now) {
+                showMessage('开始日期必须晚于或等于今天', 'error');
+                return;
+            }
+            if (endDt < startDt) {
+                showMessage('结束日期必须晚于或等于开始日期', 'error');
+                return;
+            }
+
+            setButton.disabled = true;
+            clearMessage();
+
+            fetch('/schedule_collection', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    frequency: frequency,
+                    start_date: startDate,
+                    end_date: endDate,
+                    execution_time: executionTime
+                })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        cancelButton.disabled = false;
+                        updateScheduleStatus();
+                        showMessage(data.message, 'success');
+                    } else {
+                        setButton.disabled = false;
+                        showMessage(data.message, 'error');
+                    }
+                })
+                .catch(error => {
+                    setButton.disabled = false;
+                    showMessage('设置周期性采集失败: ' + error.message, 'error');
+                });
+        }
+
+        function cancelSchedule() {
+            const setButton = document.getElementById('set-schedule-btn');
+            const cancelButton = document.getElementById('cancel-schedule-btn');
+
+            cancelButton.disabled = true;
+            clearMessage();
+
+            fetch('/cancel_schedule', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        setButton.disabled = false;
+                        document.getElementById('start-date').value = '';
+                        document.getElementById('end-date').value = '';
+                        document.getElementById('frequency').value = 'daily';
+                        document.getElementById('execution-time').value = '';
+                        updateScheduleStatus();
+                        showMessage(data.message, 'success');
+                    } else {
+                        cancelButton.disabled = false;
+                        showMessage(data.message, 'error');
+                    }
+                })
+                .catch(error => {
+                    cancelButton.disabled = false;
+                    showMessage('取消周期性采集失败: ' + error.message, 'error');
+                });
+        }
+
+        function updateScheduleStatus() {
+            const scheduleStatus = document.getElementById('schedule-status');
+            const setButton = document.getElementById('set-schedule-btn');
+            const cancelButton = document.getElementById('cancel-schedule-btn');
+
+            fetch('/get_schedule')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.frequency) {
+                        const frequencyText = {
+                            'daily': '每天',
+                            'weekly': '每周（周一）',
+                            'monthly': '每月（1号）'
+                        }[data.frequency];
+                        scheduleStatus.innerHTML = `
+                            当前周期性采集任务：<br>
+                            频率：${frequencyText}<br>
+                            时间范围：${data.start_date} 至 ${data.end_date}<br>
+                            每日执行时间：${data.execution_time}<br>
+                            下一次执行：${data.next_execution || '待调度'}
+                        `;
+                        setButton.disabled = true;
+                        cancelButton.disabled = false;
+                    } else {
+                        scheduleStatus.innerHTML = '无周期性采集任务';
+                        setButton.disabled = false;
+                        cancelButton.disabled = true;
+                    }
+                })
+                .catch(error => {
+                    scheduleStatus.innerHTML = '无法获取周期性采集任务';
+                    setButton.disabled = false;
+                    cancelButton.disabled = true;
+                    showMessage('获取周期性采集任务失败: ' + error.message, 'error');
+                });
+        }
+
+        function showMessage(message, type) {
+            const messageBox = document.getElementById('message-box');
+            messageBox.className = `message-box ${type === 'success' ? 'success-message' : type === 'error' ? 'error-message' : 'info-message'}`;
+            messageBox.innerHTML = message;
+            messageBox.style.display = 'block';
+        }
+
+        function clearMessage() {
+            const messageBox = document.getElementById('message-box');
+            messageBox.style.display = 'none';
+            messageBox.innerHTML = '';
+        }
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'93e160a67aa0bf73',t:'MTc0Njk2MzM3NS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'93e8834b1e94c004',t:'MTc0NzAzODE5NC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>

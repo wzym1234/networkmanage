@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <title>终端信息监控 - 信息查询</title>
+    <link href="https://unpkg.com/daisyui@3.7.4/dist/full.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com?plugins=typography,line-clamp,aspect-ratio"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+    <style>
+        body {
+            background-color: #f9fafb;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .card {
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        .btn {
+            border-radius: 6px;
+            transition: all 0.2s ease-in-out;
+            padding: 0.5rem 1rem;
+        }
+        .btn-primary {
+            background-color: #2563eb;
+            color: white;
+        }
+        .btn-primary:hover {
+            background-color: #1d4ed8;
+        }
+        .input, .select {
+            border-radius: 6px;
+            border-color: #d1d5db;
+        }
+        .input:focus, .select:focus {
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+        }
+        table {
+            font-size: 0.875rem;
+            border-collapse: collapse;
+            width: 100%;
+        }
+        table th,
+        table td {
+            padding: 0.75rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        table th {
+            background-color: #f3f4f6;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        .sidebar {
+            width: 200px;
+            height: calc(100vh - 112px);
+        }
+        .error-message {
+            border-radius: 6px;
+            padding: 1rem;
+            background: #ffebee;
+            border-left: 4px solid #f44336;
+        }
+        @media (max-width: 640px) {
+            .sidebar {
+                width: 150px;
+            }
+            .main-content {
+                margin-left: 150px;
+            }
+            .hidden-mobile {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <header class="bg-blue-600 text-white p-4 fixed top-0 left-0 w-full shadow-md z-50">
+        <h1 class="text-lg sm:text-xl font-bold">综合网管系统</h1>
+    </header>
+    <nav class="bg-blue-500 text-white p-3 fixed top-16 left-0 w-full shadow-md z-40 flex items-center">
+        <a href="/" class="text-sm sm:text-base mx-4 hover:opacity-80 transition-opacity">首页</a>
+        <a href="#" class="text-sm sm:text-base mx-4 hover:opacity-80 transition-opacity">网络监控</a>
+        <a href="#" class="text-sm sm:text-base mx-4 hover:opacity-80 transition-opacity">网络配置</a>
+        <a href="/terminal_monitor" class="text-sm sm:text-base mx-4 hover:opacity-80 transition-opacity">终端信息监控</a>
+        <a href="#" class="text-sm sm:text-base mx-4 hover:opacity-80 transition-opacity">终端开通与移机</a>
+    </nav>
+    <div class="sidebar bg-blue-600 text-white fixed top-28 left-0 p-4 overflow-y-auto shadow-md z-30">
+        <a href="/terminal_monitor" class="block text-sm sm:text-base p-2 my-2 rounded-md hover:bg-blue-400 transition-colors">统计信息</a>
+        <a href="/terminal_query" class="block text-sm sm:text-base p-2 my-2 rounded-md bg-blue-500 hover:bg-blue-400 transition-colors">信息查询</a>
+        <a href="/device_management" class="block text-sm sm:text-base p-2 my-2 rounded-md hover:bg-blue-400 transition-colors">设备管理</a>
+        <a href="/data_collection" class="block text-sm sm:text-base p-2 my-2 rounded-md hover:bg-blue-400 transition-colors">信息采集</a>
+    </div>
+    <div class="main-content ml-48 sm:ml-52 p-4 sm:p-6 mt-24">
+        <div class="card bg-base-100 shadow-sm">
+            <div class="card-body p-4 sm:p-6">
+                <h2 class="card-title text-lg font-bold mb-4">信息查询</h2>
+                <div class="flex flex-col sm:flex-row gap-4 flex-wrap">
+                    <input type="text" class="input input-bordered w-full sm:w-56" id="ipQuery" placeholder="请输入IP地址">
+                    <input type="text" class="input input-bordered w-full sm:w-56" id="macQuery" placeholder="请输入MAC地址">
+                    <select multiple class="select select-bordered h-32 w-full sm:w-56" id="switchNameQuery" title="按住Ctrl/Command多选">
+                        <option value="">请选择交换机名称（多选）</option>
+                    </select>
+                    <button class="btn btn-primary" onclick="handleQuery()"><i class="fas fa-search mr-2"></i>信息查询</button>
+                    <button class="btn btn-primary" onclick="exportToExcel()"><i class="fas fa-download mr-2"></i>导出Excel</button>
+                </div>
+            </div>
+        </div>
+        <div class="error-message hidden mt-4" id="error-message"></div>
+        <div class="card bg-base-100 shadow-sm mt-4">
+            <div class="card-body p-4 sm:p-6">
+                <p id="total-entries" class="text-sm sm:text-base">当前查询结果总数：0条</p>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm sm:text-base" id="dataTable" style="display: none;">
+                        <thead>
+                            <tr>
+                                <th>IP地址</th>
+                                <th>MAC地址</th>
+                                <th>VLAN</th>
+                                <th>接入端口</th>
+                                <th>接入交换机IP</th>
+                                <th>交换机名称</th>
+                                <th>交换机型号</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody"></tbody>
+                    </table>
+                </div>
+                <p id="no-data" class="text-gray-500 text-center py-4 hidden">未查询到符合条件的数据</p>
+                <div class="pagination flex justify-center items-center mt-4 hidden">
+                    <button class="btn btn-primary mr-2" id="prevPage" onclick="changePage(-1)">上一页</button>
+                    <span class="text-sm sm:text-base">第 <span id="currentPage">1</span> 页 / 共 <span id="totalPages">1</span> 页</span>
+                    <button class="btn btn-primary ml-2" id="nextPage" onclick="changePage(1)">下一页</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        let currentPage = 1;
+        const pageSize = 20;
+        let allData = [];
+
+        document.addEventListener('DOMContentLoaded', function() {
+            fetch('/switch_names')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP错误: ${response.status} ${response.statusText}`);
+                    }
+                    return response.json();
+                })
+                .then(names => {
+                    const select = document.getElementById('switchNameQuery');
+                    select.innerHTML = '<option value="">请选择交换机名称（多选）</option>';
+                    if (names.length === 0) {
+                        const errorMessage = document.getElementById('error-message');
+                        errorMessage.textContent = '未找到交换机名称，请检查数据采集或数据库';
+                        errorMessage.style.display = 'block';
+                        console.warn('交换机名称列表为空');
+                        return;
+                    }
+                    names.forEach(name => {
+                        const option = document.createElement('option');
+                        option.value = name;
+                        option.textContent = name;
+                        select.appendChild(option);
+                    });
+                })
+                .catch(error => {
+                    console.error('加载交换机名称失败:', error);
+                    const errorMessage = document.getElementById('error-message');
+                    errorMessage.textContent = `加载交换机名称失败: ${error.message}`;
+                    errorMessage.style.display = 'block';
+                });
+        });
+
+        function handleQuery() {
+            const ip = document.getElementById('ipQuery').value.trim();
+            const mac = document.getElementById('macQuery').value.trim();
+            const switchSelect = document.getElementById('switchNameQuery');
+            const switchNames = Array.from(switchSelect.selectedOptions)
+                                    .filter(opt => opt.value !== '')
+                                    .map(opt => opt.value);
+            
+            const params = new URLSearchParams();
+            if (ip) params.append('ip', ip);
+            if (mac) params.append('mac', mac);
+            if (switchNames.length > 0) params.append('switch_names', switchNames.join(','));
+
+            fetch(`/query?${params.toString()}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`查询失败: ${response.status} ${response.statusText}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    allData = data;
+                    currentPage = 1;
+                    renderPage();
+                    document.getElementById('total-entries').textContent = `当前查询结果总数：${allData.length}条`;
+                    const errorMessage = document.getElementById('error-message');
+                    errorMessage.style.display = 'none';
+                })
+                .catch(error => {
+                    console.error('查询失败:', error);
+                    const errorMessage = document.getElementById('error-message');
+                    errorMessage.textContent = `查询失败: ${error.message}`;
+                    errorMessage.style.display = 'block';
+                });
+        }
+
+        function renderPage() {
+            const start = (currentPage - 1) * pageSize;
+            const end = start + pageSize;
+            const pageData = allData.slice(start, end);
+
+            const tableBody = document.getElementById('tableBody');
+            const dataTable = document.getElementById('dataTable');
+            const noData = document.getElementById('no-data');
+            const pagination = document.querySelector('.pagination');
+            const currentPageSpan = document.getElementById('currentPage');
+            const totalPagesSpan = document.getElementById('totalPages');
+            const prevBtn = document.getElementById('prevPage');
+            const nextBtn = document.getElementById('nextPage');
+
+            tableBody.innerHTML = '';
+
+            if (pageData.length > 0) {
+                pageData.forEach(row => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${row.ip}</td>
+                        <td>${row.mac}</td>
+                        <td>${row.vlan}</td>
+                        <td>${row.port}</td>
+                        <td>${row.switch_ip}</td>
+                        <td>${row.switch_name}</td>
+                        <td>${row.switch_model}</td>
+                    `;
+                    tableBody.appendChild(tr);
+                });
+                dataTable.style.display = 'table';
+                noData.style.display = 'none';
+            } else {
+                dataTable.style.display = 'none';
+                noData.style.display = 'block';
+            }
+
+            const totalPages = Math.ceil(allData.length / pageSize);
+            if (totalPages > 1) {
+                pagination.style.display = 'flex';
+                currentPageSpan.textContent = currentPage;
+                totalPagesSpan.textContent = totalPages;
+                prevBtn.disabled = currentPage === 1;
+                nextBtn.disabled = currentPage === totalPages;
+            } else {
+                pagination.style.display = 'none';
+            }
+        }
+
+        function changePage(delta) {
+            const totalPages = Math.ceil(allData.length / pageSize);
+            currentPage += delta;
+            currentPage = Math.max(1, Math.min(currentPage, totalPages));
+            renderPage();
+        }
+
+        function exportToExcel() {
+            window.location.href = '/export_excel';
+        }
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'93de73778f92bd44',t:'MTc0NjkzMjY4OC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'93def5fc1e56b02f',t:'MTc0NjkzODAzNC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
+</body>
+</html>

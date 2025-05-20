@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <title>终端信息监控 - 统计信息</title>
+    <link href="https://unpkg.com/daisyui@3.7.4/dist/full.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com?plugins=typography,line-clamp,aspect-ratio"></script>
+    <style>
+        body {
+            background-color: #f9fafb;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .card {
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        .btn {
+            border-radius: 6px;
+            transition: all 0.2s ease-in-out;
+            padding: 0.5rem 1rem;
+        }
+        .btn-primary {
+            background-color: #2563eb;
+            color: white;
+        }
+        .btn-primary:hover {
+            background-color: #1d4ed8;
+        }
+        .sidebar {
+            width: 200px;
+            height: calc(100vh - 112px);
+        }
+        @media (max-width: 640px) {
+            .sidebar {
+                width: 150px;
+            }
+            .main-content {
+                margin-left: 150px;
+            }
+            .hidden-mobile {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <header class="bg-blue-600 text-white p-4 fixed top-0 left-0 w-full shadow-md z-50">
+        <h1 class="text-lg sm:text-xl font-bold">综合网管系统</h1>
+    </header>
+    <nav class="bg-blue-500 text-white p-3 fixed top-16 left-0 w-full shadow-md z-40 flex items-center">
+        <a href="/" class="text-sm sm:text-base mx-4 hover:opacity-80 transition-opacity">首页</a>
+        <a href="#" class="text-sm sm:text-base mx-4 hover:opacity-80 transition-opacity">网络监控</a>
+        <a href="#" class="text-sm sm:text-base mx-4 hover:opacity-80 transition-opacity">网络配置</a>
+        <a href="/terminal_monitor" class="text-sm sm:text-base mx-4 hover:opacity-80 transition-opacity">终端信息监控</a>
+        <a href="#" class="text-sm sm:text-base mx-4 hover:opacity-80 transition-opacity">终端开通与移机</a>
+    </nav>
+    <div class="sidebar bg-blue-600 text-white fixed top-28 left-0 p-4 overflow-y-auto shadow-md z-30">
+        <a href="/terminal_monitor" class="block text-sm sm:text-base p-2 my-2 rounded-md bg-blue-500 hover:bg-blue-400 transition-colors">统计信息</a>
+        <a href="/terminal_query" class="block text-sm sm:text-base p-2 my-2 rounded-md hover:bg-blue-400 transition-colors">信息查询</a>
+        <a href="/device_management" class="block text-sm sm:text-base p-2 my-2 rounded-md hover:bg-blue-400 transition-colors">设备管理</a>
+        <a href="/data_collection" class="block text-sm sm:text-base p-2 my-2 rounded-md hover:bg-blue-400 transition-colors">信息采集</a>
+    </div>
+    <div class="main-content ml-48 sm:ml-52 p-4 sm:p-6 mt-24">
+        <div class="card bg-base-100 shadow-sm">
+            <div class="card-body p-4 sm:p-6">
+                <h2 class="card-title text-lg font-bold mb-4">最新同步统计（{{ sync_time }}）</h2>
+                <div class="text-sm sm:text-base">新增数据：<strong>{{ insert_count }}</strong> 条</div>
+                <div class="text-sm sm:text-base">变更数据：<strong>{{ update_count }}</strong> 条</div>
+                {% if update_count > 0 %}
+                <details class="mt-4">
+                    <summary class="cursor-pointer font-medium text-blue-600 p-2 bg-blue-50 rounded-md">查看变更明细</summary>
+                    {% for detail in update_details %}
+                    <div class="bg-blue-50 p-3 border-l-4 border-blue-600 rounded-md mt-2">
+                        <p>原位于 <strong>{{ detail.old_switch_name }}</strong>（IP: {{ detail.old_switch_ip }}）交换机 <strong>{{ detail.old_port }}</strong> 端口的主机：</p>
+                        <p>原IP：{{ detail.old_ip }}，原MAC：{{ detail.old_mac }}，原VLAN：{{ detail.old_vlan }}</p>
+                        <p>→ 现位于 <strong>{{ detail.new_switch_name }}</strong>（IP: {{ detail.new_switch_ip }}）交换机 <strong>{{ detail.new_port }}</strong> 端口：</p>
+                        <p>现IP：{{ detail.new_ip }}，现MAC：{{ detail.new_mac }}，现VLAN：{{ detail.new_vlan }}</p>
+                    </div>
+                    {% endfor %}
+                </details>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'93de73779ec38bb7',t:'MTc0NjkzMjY4OC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'93def5fd59bfadc9',t:'MTc0NjkzODAzNC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
+</body>
+</html>

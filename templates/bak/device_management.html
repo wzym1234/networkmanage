@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <title>终端信息监控 - 设备管理</title>
+    <link href="https://unpkg.com/daisyui@3.7.4/dist/full.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com?plugins=typography,line-clamp,aspect-ratio"></script>
+    <style>
+        body {
+            background-color: #f9fafb;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .card {
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        .btn {
+            border-radius: 6px;
+            transition: all 0.2s ease-in-out;
+            padding: 0.5rem 1rem;
+        }
+        .btn-primary {
+            background-color: #2563eb;
+            color: white;
+        }
+        .btn-primary:hover {
+            background-color: #1d4ed8;
+        }
+        .btn-danger {
+            background-color: #dc2626;
+            color: white;
+        }
+        .btn-danger:hover {
+            background-color: #b91c1c;
+        }
+        .input, .file-input, .select {
+            border-radius: 6px;
+            border-color: #d1d5db;
+        }
+        .input:focus, .file-input:focus, .select:focus {
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+        }
+        .sidebar {
+            width: 200px;
+            height: calc(100vh - 112px);
+        }
+        @media (max-width: 640px) {
+            .sidebar {
+                width: 150px;
+            }
+            .main-content {
+                margin-left: 150px;
+            }
+            .hidden-mobile {
+                display: none !important;
+            }
+            .forms-section {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <header class="bg-blue-600 text-white p-4 fixed top-0 left-0 w-full shadow-md z-50">
+        <h1 class="text-lg sm:text-xl font-bold">综合网管系统</h1>
+    </header>
+    <nav class="bg-blue-500 text-white p-3 fixed top-16 left-0 w-full shadow-md z-40 flex items-center">
+        <a href="/" class="text-sm sm:text-base mx-4 hover:opacity-80 transition-opacity">首页</a>
+        <a href="#" class="text-sm sm:text-base mx-4 hover:opacity-80 transition-opacity">网络监控</a>
+        <a href="#" class="text-sm sm:text-base mx-4 hover:opacity-80 transition-opacity">网络配置</a>
+        <a href="/terminal_monitor" class="text-sm sm:text-base mx-4 hover:opacity-80 transition-opacity">终端信息监控</a>
+        <a href="#" class="text-sm sm:text-base mx-4 hover:opacity-80 transition-opacity">终端开通与移机</a>
+    </nav>
+    <div class="sidebar bg-blue-600 text-white fixed top-28 left-0 p-4 overflow-y-auto shadow-md z-30">
+        <a href="/terminal_monitor" class="block text-sm sm:text-base p-2 my-2 rounded-md hover:bg-blue-400 transition-colors">统计信息</a>
+        <a href="/terminal_query" class="block text-sm sm:text-base p-2 my-2 rounded-md hover:bg-blue-400 transition-colors">信息查询</a>
+        <a href="/device_management" class="block text-sm sm:text-base p-2 my-2 rounded-md bg-blue-500 hover:bg-blue-400 transition-colors">设备管理</a>
+        <a href="/data_collection" class="block text-sm sm:text-base p-2 my-2 rounded-md hover:bg-blue-400 transition-colors">信息采集</a>
+    </div>
+    <div class="main-content ml-48 sm:ml-52 p-4 sm:p-6 mt-24">
+        <div class="forms-section grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="card bg-base-100 shadow-sm">
+                <div class="card-body p-4 sm:p-6">
+                    <h2 class="card-title text-lg font-bold mb-4">设备列表</h2>
+                    <select id="deviceSelect" multiple class="select select-bordered w-full h-40 mb-4">
+                        <!-- 动态加载设备 -->
+                    </select>
+                    <div class="flex gap-3">
+                        <button id="deleteDevicesBtn" class="btn btn-danger"><i class="fas fa-trash mr-2"></i>删除设备</button>
+                        <button id="editDeviceBtn" class="btn btn-primary"><i class="fas fa-edit mr-2"></i>编辑设备</button>
+                        <button id="addDeviceBtn" class="btn btn-primary"><i class="fas fa-plus mr-2"></i>添加设备</button>
+                    </div>
+                </div>
+            </div>
+            <div class="card bg-base-100 shadow-sm">
+                <div class="card-body p-4 sm:p-6">
+                    <h2 class="card-title text-lg font-bold mb-4">导入设备</h2>
+                    <form id="importDevicesForm" enctype="multipart/form-data" class="flex flex-col gap-3">
+                        <input type="file" name="file" accept=".xlsx" class="file-input file-input-bordered" required>
+                        <button type="submit" class="btn btn-primary"><i class="fas fa-upload mr-2"></i>导入</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 设备模态框 -->
+    <div class="modal" id="deviceModal">
+        <div class="modal-box">
+            <h3 class="font-bold text-lg" id="modalTitle">编辑设备</h3>
+            <form id="deviceForm" class="flex flex-col gap-3 mt-4">
+                <input type="hidden" name="original_ip" id="originalIp">
+                <div>
+                    <label class="label">IP地址</label>
+                    <input type="text" name="ip" id="deviceIp" placeholder="IP地址" class="input input-bordered w-full" required pattern="^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$" title="请输入有效的IP地址（如：192.168.1.1）">
+                </div>
+                <div>
+                    <label class="label">用户名</label>
+                    <input type="text" name="user" id="deviceUser" placeholder="用户名" class="input input-bordered w-full" required>
+                </div>
+                <div>
+                    <label class="label">密码</label>
+                    <input type="password" name="pass" id="devicePass" placeholder="密码" class="input input-bordered w-full" required>
+                </div>
+                <div class="modal-action">
+                    <button type="submit" class="btn btn-primary">保存</button>
+                    <button type="button" class="btn" onclick="closeDeviceModal()">取消</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // 加载设备列表
+        function loadDevices() {
+            fetch('/get_devices')
+                .then(response => response.json())
+                .then(data => {
+                    const select = document.getElementById('deviceSelect');
+                    select.innerHTML = '';
+                    data.devices.forEach(device => {
+                        const option = document.createElement('option');
+                        option.value = device.ip;
+                        option.text = `${device.devname || '未知'} (${device.ip})`;
+                        select.appendChild(option);
+                    });
+                })
+                .catch(error => {
+                    alert('加载设备列表失败: ' + error.message);
+                });
+        }
+
+        // 初始化加载设备
+        document.addEventListener('DOMContentLoaded', loadDevices);
+
+        // 导入设备
+        document.getElementById('importDevicesForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            fetch('/import_devices', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('设备导入成功');
+                    this.reset();
+                    loadDevices();
+                } else {
+                    alert('设备导入失败: ' + data.message);
+                }
+            })
+            .catch(error => {
+                alert('设备导入失败: ' + error.message);
+            });
+        });
+
+        // 删除设备
+        document.getElementById('deleteDevicesBtn').addEventListener('click', function() {
+            const select = document.getElementById('deviceSelect');
+            const selectedIps = Array.from(select.selectedOptions).map(option => option.value);
+            if (selectedIps.length === 0) {
+                alert('请至少选择一个设备');
+                return;
+            }
+            if (!confirm(`确定要删除 ${selectedIps.length} 个设备吗？`)) {
+                return;
+            }
+            fetch('/delete_devices', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ips: selectedIps })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('设备删除成功');
+                    loadDevices();
+                } else {
+                    alert('设备删除失败: ' + data.message);
+                }
+            })
+            .catch(error => {
+                alert('设备删除失败: ' + error.message);
+            });
+        });
+
+        // 打开设备模态框（编辑或添加）
+        function openDeviceModal(mode, device = null) {
+            const modal = document.getElementById('deviceModal');
+            const form = document.getElementById('deviceForm');
+            const title = document.getElementById('modalTitle');
+            const ipInput = document.getElementById('deviceIp');
+            const userInput = document.getElementById('deviceUser');
+            const passInput = document.getElementById('devicePass');
+            const originalIpInput = document.getElementById('originalIp');
+
+            form.dataset.mode = mode;
+            if (mode === 'add') {
+                title.textContent = '添加设备';
+                form.reset();
+                originalIpInput.value = '';
+            } else {
+                title.textContent = '编辑设备';
+                originalIpInput.value = device.ip;
+                ipInput.value = device.ip;
+                userInput.value = device.user;
+                passInput.value = device.pass;
+            }
+            modal.classList.add('modal-open');
+        }
+
+        // 关闭设备模态框
+        function closeDeviceModal() {
+            document.getElementById('deviceModal').classList.remove('modal-open');
+            document.getElementById('deviceForm').reset();
+            delete document.getElementById('deviceForm').dataset.mode;
+        }
+
+        // 编辑设备按钮
+        document.getElementById('editDeviceBtn').addEventListener('click', function() {
+            const select = document.getElementById('deviceSelect');
+            const selectedIps = Array.from(select.selectedOptions).map(option => option.value);
+            if (selectedIps.length !== 1) {
+                alert('请且仅选择一个设备进行编辑');
+                return;
+            }
+            const ip = selectedIps[0];
+            fetch(`/get_devices?ip=${ip}`)
+                .then(response => response.json())
+                .then(data => {
+                    const device = data.devices[0];
+                    openDeviceModal('edit', device);
+                })
+                .catch(error => {
+                    alert('加载设备信息失败: ' + error.message);
+                });
+        });
+
+        // 添加设备按钮
+        document.getElementById('addDeviceBtn').addEventListener('click', function() {
+            openDeviceModal('add');
+        });
+
+        // 处理设备表单提交（添加或编辑）
+        document.getElementById('deviceForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const ipInput = document.getElementById('deviceIp');
+            const ipPattern = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+            if (!ipPattern.test(ipInput.value)) {
+                alert('请输入有效的IP地址（如：192.168.1.1）');
+                return;
+            }
+
+            const formData = new FormData(this);
+            const mode = this.dataset.mode;
+            const url = mode === 'add' ? '/add_device' : '/edit_device';
+
+            fetch(url, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(mode === 'add' ? '设备添加成功' : '设备编辑成功');
+                    closeDeviceModal();
+                    loadDevices();
+                } else {
+                    alert((mode === 'add' ? '设备添加失败: ' : '设备编辑失败: ') + data.message);
+                }
+            })
+            .catch(error => {
+                alert((mode === 'add' ? '设备添加失败: ' : '设备编辑失败: ') + error.message);
+            });
+        });
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'93e1563c1ebd4535',t:'MTc0Njk2Mjk0OC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
+</body>
+</html>
