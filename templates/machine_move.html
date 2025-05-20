@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <title>终端信息监控 - 终端移机</title>
+    <link href="../css/daisyui.full.css" rel="stylesheet">
+    <link href="../css/fontawesome.all.min.css" rel="stylesheet">
+    <link href="../css/tailwind.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f9fafb;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .card {
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        .btn {
+            border-radius: 6px;
+            transition: all 0.2s ease-in-out;
+            padding: 0.5rem 1rem;
+        }
+        .btn-primary {
+            background-color: #2563eb;
+            color: white;
+        }
+        .btn-primary:hover {
+            background-color: #1d4ed8;
+        }
+        .btn-success {
+            background-color: #059669;
+            color: white;
+        }
+        .btn-success:hover {
+            background-color: #047857;
+        }
+        .input, .select {
+            border-radius: 6px;
+            border-color: #d1d5db;
+        }
+        .input:focus, .select:focus {
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+        }
+        table {
+            font-size: 0.875rem;
+            border-collapse: collapse;
+            width: 100%;
+        }
+        table th,
+        table td {
+            padding: 0.75rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        table th {
+            background-color: #f3f4f6;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        .sidebar {
+            width: 200px;
+            height: calc(100vh - 112px);
+        }
+        .error-message {
+            border-radius: 6px;
+            padding: 1rem;
+            background: #ffebee;
+            border-left: 4px solid #f44336;
+        }
+        .success-message {
+            border-radius: 6px;
+            padding: 1rem;
+            background: #ecfdf5;
+            border-left: 4px solid #059669;
+        }
+        @media (max-width: 640px) {
+            .sidebar {
+                width: 150px;
+            }
+            .main-content {
+                margin-left: 150px;
+            }
+            .hidden-mobile {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <header class="bg-blue-600 text-white p-4 fixed top-0 left-0 w-full shadow-md z-50">
+        <h1 class="text-lg sm:text-xl font-bold">综合网管系统</h1>
+    </header>
+    <nav class="bg-blue-500 text-white p-3 fixed top-16 left-0 w-full shadow-md z-40 flex items-center">
+        <a href="/" class="text-sm sm:text-base mx-4 hover:opacity-80 transition-opacity">首页</a>
+        <a href="#" class="text-sm sm:text-base mx-4 hover:opacity-80 transition-opacity">网络监控</a>
+        <a href="#" class="text-sm sm:text-base mx-4 hover:opacity-80 transition-opacity">网络配置</a>
+        <a href="/terminal_monitor" class="text-sm sm:text-base mx-4 hover:opacity-80 transition-opacity">终端信息监控</a>
+        <a href="#" class="text-sm sm:text-base mx-4 hover:opacity-80 transition-opacity">终端开通与移机</a>
+    </nav>
+    <div class="sidebar bg-blue-600 text-white fixed top-28 left-0 p-4 overflow-y-auto shadow-md z-30">
+        <a href="/terminal_monitor" class="block text-sm sm:text-base p-2 my-2 rounded-md hover:bg-blue-400 transition-colors">统计信息</a>
+        <a href="/terminal_query" class="block text-sm sm:text-base p-2 my-2 rounded-md hover:bg-blue-400 transition-colors">信息查询</a>
+        <a href="/device_management" class="block text-sm sm:text-base p-2 my-2 rounded-md hover:bg-blue-400 transition-colors">设备管理</a>
+        <a href="/data_collection" class="block text-sm sm:text-base p-2 my-2 rounded-md hover:bg-blue-400 transition-colors">信息采集</a>
+    </div>
+    <div class="main-content ml-48 sm:ml-52 p-4 sm:p-6 mt-24">
+        <div class="card bg-base-100 shadow-sm">
+            <div class="card-body p-4 sm:p-6">
+                <h2 class="card-title text-lg font-bold mb-4">终端移机操作</h2>
+                <div class="flex flex-col sm:flex-row gap-4 flex-wrap">
+                    <input type="text" class="input input-bordered w-full sm:w-56" id="ipInput" placeholder="请输入完整IP地址（如：192.168.1.1）" 
+                           oninput="this.value = this.value.replace(/[^0-9.]/g, '')">
+                    <input type="text" class="input input-bordered w-full sm:w-56" id="macInput" placeholder="自动填充MAC地址" readonly>
+                    <select multiple class="select select-bordered h-32 w-full sm:w-56" id="switchSelect" title="按住Ctrl/Command多选">
+                        <option value="">请选择目标交换机（多选）</option>
+                    </select>
+                    <button class="btn btn-primary" onclick="queryPortInfo()"><i class="fas fa-search mr-2"></i>查询端口信息</button>
+                    <input type="number" class="input input-bordered w-full sm:w-56" id="vlanInput" placeholder="请输入目标VLAN">
+                    <button class="btn btn-success" onclick="executeMoveMachine()"><i class="fas fa-exchange-alt mr-2"></i>执行移机</button>
+                </div>
+            </div>
+        </div>
+        <div id="messageBox" class="hidden mt-4"></div>
+        <div class="card bg-base-100 shadow-sm mt-4">
+            <div class="card-body p-4 sm:p-6">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm sm:text-base" id="dataTable" style="display: none;">
+                        <thead>
+                            <tr>
+                                <th>交换机名称</th>
+                                <th>交换机IP</th>
+                                <th>当前端口</th>
+                                <th>当前VLAN</th>
+                                <th>MAC地址</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody"></tbody>
+                    </table>
+                </div>
+                <p id="no-data" class="text-gray-500 text-center py-4 hidden">未查询到符合条件的端口信息</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentQueryData = [];
+
+        // 页面加载时加载交换机列表
+        document.addEventListener('DOMContentLoaded', function() {
+            fetch('/switch_names')
+                .then(response => {
+                    if (!response.ok) throw new Error(`HTTP错误: ${response.status} ${response.statusText}`);
+                    return response.json();
+                })
+                .then(names => {
+                    const select = document.getElementById('switchSelect');
+                    select.innerHTML = '<option value="">请选择目标交换机（多选）</option>';
+                    names.forEach(name => {
+                        const option = document.createElement('option');
+                        option.value = name;
+                        option.textContent = name;
+                        select.appendChild(option);
+                    });
+                })
+                .catch(error => showMessage(`加载交换机列表失败: ${error.message}`, 'error'));
+        });
+
+        // IP地址格式验证（简化版）
+        function validateIP(ip) {
+            const regex = /^(\d{1,3}\.){3}\d{1,3}$/;
+            return regex.test(ip) && ip.split('.').every(num => parseInt(num) <= 255);
+        }
+
+        // 查询端口信息
+        function queryPortInfo() {
+            const ip = document.getElementById('ipInput').value.trim();
+            const switches = Array.from(document.getElementById('switchSelect').selectedOptions)
+                                 .filter(opt => opt.value !== '')
+                                 .map(opt => opt.value);
+
+            // IP必填且格式验证
+            if (!ip) {
+                showMessage('请输入完整IP地址', 'error');
+                return;
+            }
+            if (!validateIP(ip)) {
+                showMessage('IP地址格式不正确', 'error');
+                return;
+            }
+            if (switches.length === 0) {
+                showMessage('请选择至少一个目标交换机', 'error');
+                return;
+            }
+
+            // 先获取MAC地址
+            fetch(`/get_mac_by_ip?ip=${ip}`)
+                .then(response => {
+                    if (!response.ok) throw new Error(`获取MAC失败: ${response.status} ${response.statusText}`);
+                    return response.json();
+                })
+                .then(macData => {
+                    if (macData.mac) {
+                        document.getElementById('macInput').value = macData.mac;
+                    } else {
+                        document.getElementById('macInput').value = '';
+                        showMessage('未找到对应MAC地址', 'error');
+                    }
+                })
+                .catch(error => {
+                    document.getElementById('macInput').value = '';
+                    showMessage(`获取MAC失败: ${error.message}`, 'error');
+                })
+                .finally(() => {
+                    // 继续查询端口信息
+                    const params = new URLSearchParams();
+                    params.append('ip', ip);
+                    params.append('switches', switches.join(','));
+
+                    fetch(`/query_port_info?${params.toString()}`)
+                        .then(response => {
+                            if (!response.ok) throw new Error(`查询失败: ${response.status} ${response.statusText}`);
+                            return response.json();
+                        })
+                        .then(data => {
+                            currentQueryData = data;
+                            renderTable(data);
+                            showMessage('查询成功', 'success');
+                        })
+                        .catch(error => showMessage(`查询失败: ${error.message}`, 'error'));
+                });
+        }
+
+        // 执行移机操作
+        function executeMoveMachine() {
+            const vlan = document.getElementById('vlanInput').value.trim();
+            const switches = Array.from(document.getElementById('switchSelect').selectedOptions)
+                                 .filter(opt => opt.value !== '')
+                                 .map(opt => opt.value);
+
+            if (!vlan) {
+                showMessage('请输入目标VLAN', 'error');
+                return;
+            }
+            if (currentQueryData.length === 0) {
+                showMessage('请先查询需要移机的端口信息', 'error');
+                return;
+            }
+
+            const requestData = {
+                vlan: parseInt(vlan),
+                targetSwitches: switches,
+                portInfo: currentQueryData
+            };
+
+            fetch('/execute_move_machine', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(requestData)
+            })
+            .then(response => {
+                if (!response.ok) throw new Error(`移机失败: ${response.status} ${response.statusText}`);
+                return response.json();
+            })
+            .then(result => {
+                if (result.success) {
+                    showMessage('移机操作成功！', 'success');
+                    queryPortInfo(); // 刷新查询结果
+                } else {
+                    showMessage(`移机失败: ${result.message}`, 'error');
+                }
+            })
+            .catch(error => showMessage(`移机失败: ${error.message}`, 'error'));
+        }
+
+        // 渲染表格
+        function renderTable(data) {
+            const tableBody = document.getElementById('tableBody');
+            const dataTable = document.getElementById('dataTable');
+            const noData = document.getElementById('no-data');
+
+            tableBody.innerHTML = '';
+            if (data.length > 0) {
+                data.forEach(item => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${item.switch_name}</td>
+                        <td>${item.switch_ip}</td>
+                        <td>${item.port}</td>
+                        <td>${item.current_vlan}</td>
+                        <td>${item.mac}</td>
+                    `;
+                    tableBody.appendChild(tr);
+                });
+                dataTable.style.display = 'table';
+                noData.style.display = 'none';
+            } else {
+                dataTable.style.display = 'none';
+                noData.style.display = 'block';
+            }
+        }
+
+        // 显示消息
+        function showMessage(text, type) {
+            const messageBox = document.getElementById('messageBox');
+            messageBox.className = `mt-4 ${type === 'success' ? 'success-message' : 'error-message'}`;
+            messageBox.textContent = text;
+            messageBox.style.display = 'block';
+            setTimeout(() => messageBox.style.display = 'none', 5000);
+        }
+    </script>
+</body>
+</html>
+    
